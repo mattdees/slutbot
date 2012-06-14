@@ -2,20 +2,21 @@ import urllib, urllib2
 import BeautifulSoup
 
 class weather_check:
-    def __init__(self):
+    def __init__(self, irc):
         self.registered_events = {
             '.w':self.wunderground,
             '.pws':self.wu_pws,
         }
+        self.irc = irc
     def get_events(self):
         return self.registered_events
-    def wunderground( self, irc, channel, arguments, user):
+    def wunderground( self, channel, arguments, user):
         res_xml = self.http_get_query( 'http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml', { 'query':arguments } )
         parsed_res = BeautifulSoup.BeautifulStoneSoup( res_xml )
         res = parsed_res.current_observation.display_location.full.string + ' '
         res = self.parse_wunderground_respone( parsed_res, res )
-        irc.msg(channel, res.encode('latin-1') )
-    def wu_pws( self, irc, channel, arguments, user):
+        self.irc.msg(channel, res.encode('latin-1') )
+    def wu_pws( self, channel, arguments, user):
         stations = self.http_get_query( 'http://api.wunderground.com/auto/wui/geo/GeoLookupXML/index.xml', { 'query': arguments } )
         stations_parsed = BeautifulSoup.BeautifulStoneSoup( stations )
         station_id = stations_parsed.location.nearby_weather_stations.pws.station.id.string
@@ -25,7 +26,7 @@ class weather_check:
         parsed_res = BeautifulSoup.BeautifulStoneSoup( res_xml )
         res = parsed_res.current_observation.location.full.string + ' '
         res = self.parse_wunderground_respone( parsed_res, res )
-        irc.msg(channel, res.encode('latin-1') )
+        self.irc.msg(channel, res.encode('latin-1') )
     
     def parse_wunderground_respone( self, data, response ):
         if len( data.current_observation.temperature_string.contents ) != 0:

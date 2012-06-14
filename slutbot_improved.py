@@ -22,7 +22,7 @@ class SlutBot(irc.IRCClient):
         for plugin in plugins:
             plugin_module = __import__(plugin)
             plugin_obj = getattr(plugin_module, plugin)
-            plugin_obj = plugin_obj()
+            plugin_obj = plugin_obj(self)
             plugin_events = plugin_obj.get_events()
             self.triggers.update( plugin_events.items() )   
 
@@ -38,6 +38,7 @@ class SlutBot(irc.IRCClient):
     def signedOn(self):
         print "connection from", self.transport.getPeer()
         self.load_plugins()
+        self.setNick(self.factory.server_config['nickname'])
         channel_list = self.factory.server_config['channels']
         for channel in channel_list.keys():
             self.join( channel, channel_list[channel] )
@@ -53,7 +54,7 @@ class SlutBot(irc.IRCClient):
             [ command, null, arguments ] = msg.partition(' ')
             for trigger in self.triggers.keys():
                 if command == trigger:
-                    self.triggers[trigger](self, channel, arguments, user)
+                    self.triggers[trigger](channel, arguments, user)
     def action(self, user, channel, msg):
         user = user.split('!', 1)[0]
         sys.stdout.write("* %s %s" % (user, msg))
