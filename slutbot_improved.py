@@ -20,11 +20,15 @@ class SlutBot(irc.IRCClient):
         plugins = self.factory.server_config['plugins']
         self.triggers = {}
         for plugin in plugins:
-            plugin_module = __import__(plugin)
-            plugin_obj = getattr(plugin_module, plugin)
-            plugin_obj = plugin_obj(self)
-            plugin_events = plugin_obj.get_events()
-            self.triggers.update( plugin_events.items() )   
+            try:
+                plugin_module = __import__(plugin)
+                plugin_obj = getattr(plugin_module, plugin)
+                plugin_obj = plugin_obj(self)
+                plugin_events = plugin_obj.get_events()
+                self.triggers.update( plugin_events.items() )   
+            except TypeError as e:
+                print "Something terrible happened: " + e.message
+
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -54,7 +58,7 @@ class SlutBot(irc.IRCClient):
             [ command, null, arguments ] = msg.partition(' ')
             for trigger in self.triggers.keys():
                 if command == trigger:
-                    self.triggers[trigger](channel, arguments, user)
+                    self.triggers[trigger]( channel, arguments, user)
     def action(self, user, channel, msg):
         user = user.split('!', 1)[0]
         sys.stdout.write("* %s %s" % (user, msg))

@@ -1,0 +1,11 @@
+irc.freenode.net:
+  channels: {'#herpderp': false, '#slutbot': false}
+  nickname: somenickname
+  plugins: [ url_handler, weather_check,spell_checker, eightball, reddit_checker]
+  port: 6667
+  plugin_config: {'reddit_subreddit':'technology', 'reddit_channel':'#herpderp' }
+irc.servercentral.net:
+  channels: {'#someprivatechannel': somekey, '#geckbot': false}
+  nickname: slutbot
+  plugins: [roulette, url_handler, weather_check, spell_checker, eightball]
+  port: 6667
