@@ -1,22 +1,37 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import BeautifulSoup
-from sb_plugins import plugin_base
+
 import urllib
 import urllib2
+
+import BeautifulSoup
+
+from sb_plugins import plugin_base
 
 
 class weather_check(plugin_base):
     def __init__(self, irc):
-        self.registered_events = {'.w': self.wunderground,
-                                  '.pws': self.wu_pws,
-                                  '.pws_id': self.wu_pwsid}
+        self.registered_events = {
+            '.w': self.wunderground,
+            '.pws': self.wu_pws,
+            '.pwsid': self.wu_pwsid
+        }
+
+        baseurl = 'http://api.wunderground.com/'
+        self.endpoints = {
+            'GeoCurrent': baseurl + 'auto/wui/geo/WXCurrentObXML/index.xml',
+            'GeoLookup': baseurl + 'auto/wui/geo/GeoLookupXML/index.xml',
+            'WsCurrent': baseurl + 'weatherstation/WXCurrentObXML.asp',
+        }
         self.irc = irc
 
     def wunderground(self, channel, arguments, user):
-        res_xml = \
-            self.http_get_query('http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml', {'query': arguments})
+        res_xml = self.http_get_query(
+            self.endpoints['GeoCurrent'],
+            {'query': arguments}
+        )
+
         parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
         res = \
             parsed_res.current_observation.display_location.full.string \
@@ -25,55 +40,58 @@ class weather_check(plugin_base):
         self.irc.msg(channel, res.encode('latin-1'))
 
     def wu_pws(self, channel, arguments, user):
-        stations = \
-            self.http_get_query('http://api.wunderground.com/auto/wui/geo/GeoLookupXML/index.xml', {'query': arguments})
+        stations = self.http_get_query(
+            self.endpoints['GeoLookup'],
+            {'query': arguments}
+        )
+
         stations_parsed = BeautifulSoup.BeautifulStoneSoup(stations)
-        station_id = \
-            stations_parsed.location.nearby_weather_stations.pws.station.id.string
+
+        nearby_stations = stations_parsed.location.nearby_weather_stations
+        station_id = nearby_stations.pws.station.id.string
         station_id = station_id.replace('<![CDATA[', '')
         station_id = station_id.replace(']]>', '')
-        res_xml = \
-            self.http_get_query('http://api.wunderground.com/weatherstation/WXCurrentObXML.asp', {'ID': station_id})
-        parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
-        res = parsed_res.current_observation.location.full.string + ' '
-        res = self.parse_wunderground_respone(parsed_res, res)
-        self.irc.msg(channel, res.encode('latin-1'))
+
+        self.return_pwsid(channel, station_id)
 
     def wu_pwsid(self, channel, arguments, user):
         station_id = "KTXHOUST890"
-        res_xml = self.http_get_query('http://api.wunderground.com/weatherstation/WXCurrentObXML.asp', {'ID': station_id})
+        self.return_pwsid(channel, station_id)
+
+    def return_pwsid(self, channel, stationid):
+        res_xml = self.http_get_query(
+            self.endpoints['WsCurrent'],
+            {'ID': stationid}
+        )
+
         parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
         res = parsed_res.current_observation.location.full.string + ' '
         res = self.parse_wunderground_respone(parsed_res, res)
         self.irc.msg(channel, res.encode('latin-1'))
 
     def parse_wunderground_respone(self, data, response):
-        if len(data.current_observation.temperature_string.contents) != 0:
-            response += ' temp: ' + data.current_observation.temperature_string.string
+        obs = data.current_observation
 
-        if len(data.current_observation.relative_humidity.contents) != 0:
-            response += ' humidity: ' \
-                + data.current_observation.relative_humidity.string
+        if len(obs.temperature_string.contents) != 0:
+            response += ' temp: ' + obs.temperature_string.string
 
-        if len(data.current_observation.wind_string.contents) != 0:
-            response += ' wind: ' \
-                + data.current_observation.wind_string.string
+        if len(obs.relative_humidity.contents) != 0:
+            response += ' humidity: ' + obs.relative_humidity.string
 
-        if len(data.current_observation.windchill_string.contents) != 0:
-            response += ' windchill: ' \
-                + data.current_observation.windchill_string.string
+        if len(obs.wind_string.contents) != 0:
+            response += ' wind: ' + obs.wind_string.string
 
-        if len(data.current_observation.pressure_string.contents) != 0:
-            response += ' pressure: ' \
-                + data.current_observation.pressure_string.string
+        if len(obs.windchill_string.contents) != 0:
+            response += ' windchill: ' + obs.windchill_string.string
 
-        if len(data.current_observation.dewpoint_string.contents) != 0:
-            response += ' dewpoint: ' \
-                + data.current_observation.dewpoint_string.string
+        if len(obs.pressure_string.contents) != 0:
+            response += ' pressure: ' + obs.pressure_string.string
 
-        if len(data.current_observation.station_id.contents) != 0:
-            response += ' station: ' \
-                + data.current_observation.station_id.string
+        if len(obs.dewpoint_string.contents) != 0:
+            response += ' dewpoint: ' + obs.dewpoint_string.string
+
+        if len(obs.station_id.contents) != 0:
+            response += ' station: ' + obs.station_id.string
 
         return response
 

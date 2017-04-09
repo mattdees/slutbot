@@ -1,16 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 import sys
 import time
+
 from twisted.internet import protocol
 from twisted.internet import reactor
 from twisted.python import log
 from twisted.words.protocols import irc
+
 import yaml
 
 sys.path.append('plugins')
-
+sys.path.append('lib')
 
 class SlutBot(irc.IRCClient):
 
