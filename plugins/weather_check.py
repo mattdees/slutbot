@@ -1,29 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+import BeautifulSoup
 import urllib
 import urllib2
-import BeautifulSoup
 
 
-class weather_check:
-
+class weather_check(object):
     def __init__(self, irc):
         self.registered_events = {'.w': self.wunderground,
-                                  '.pws': self.wu_pws}
+                                  '.pws': self.wu_pws,
+                                  '.pws_id': self.wu_pwsid}
         self.irc = irc
 
     def get_events(self):
         return self.registered_events
 
-    def wunderground(
-        self,
-        channel,
-        arguments,
-        user,
-        ):
+    def wunderground(self, channel, arguments, user):
         res_xml = \
-            self.http_get_query('http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml'
-                                , {'query': arguments})
+            self.http_get_query('http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml', {'query': arguments})
         parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
         res = \
             parsed_res.current_observation.display_location.full.string \
@@ -31,36 +26,34 @@ class weather_check:
         res = self.parse_wunderground_respone(parsed_res, res)
         self.irc.msg(channel, res.encode('latin-1'))
 
-    def wu_pws(
-        self,
-        channel,
-        arguments,
-        user,
-        ):
+    def wu_pws(self, channel, arguments, user):
         stations = \
-            self.http_get_query('http://api.wunderground.com/auto/wui/geo/GeoLookupXML/index.xml'
-                                , {'query': arguments})
+            self.http_get_query('http://api.wunderground.com/auto/wui/geo/GeoLookupXML/index.xml', {'query': arguments})
         stations_parsed = BeautifulSoup.BeautifulStoneSoup(stations)
         station_id = \
             stations_parsed.location.nearby_weather_stations.pws.station.id.string
         station_id = station_id.replace('<![CDATA[', '')
         station_id = station_id.replace(']]>', '')
         res_xml = \
-            self.http_get_query('http://api.wunderground.com/weatherstation/WXCurrentObXML.asp'
-                                , {'ID': station_id})
+            self.http_get_query('http://api.wunderground.com/weatherstation/WXCurrentObXML.asp', {'ID': station_id})
+        parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
+        res = parsed_res.current_observation.location.full.string + ' '
+        res = self.parse_wunderground_respone(parsed_res, res)
+        self.irc.msg(channel, res.encode('latin-1'))
+
+    def wu_pwsid(self, channel, arguments, user):
+        station_id = "KTXHOUST890"
+        res_xml = self.http_get_query('http://api.wunderground.com/weatherstation/WXCurrentObXML.asp', {'ID': station_id})
         parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
         res = parsed_res.current_observation.location.full.string + ' '
         res = self.parse_wunderground_respone(parsed_res, res)
         self.irc.msg(channel, res.encode('latin-1'))
 
     def parse_wunderground_respone(self, data, response):
-        if len(data.current_observation.temperature_string.contents) \
-            != 0:
-            response += ' temp: ' \
-                + data.current_observation.temperature_string.string
+        if len(data.current_observation.temperature_string.contents) != 0:
+            response += ' temp: ' + data.current_observation.temperature_string.string
 
-        if len(data.current_observation.relative_humidity.contents) \
-            != 0:
+        if len(data.current_observation.relative_humidity.contents) != 0:
             response += ' humidity: ' \
                 + data.current_observation.relative_humidity.string
 
@@ -96,15 +89,13 @@ class weather_check:
 
         try:
             response = urllib2.urlopen(http_query)
-        except (URLError, HTTPError):
+        except (urllib2.URLError, urllib2.HTTPError):
 
             # error if our query has issues
 
-            print 'Error while retrieving http data for ' + http_query
+            print('Error while retrieving http data for ' + http_query)
             return False
 
         # return the data contained within the http query
 
         return response.read()
-
-
