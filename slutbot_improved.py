@@ -1,21 +1,24 @@
 #!/usr/bin/python
-
-# twisted imports
-from twisted.words.protocols import irc
-from twisted.internet import reactor, protocol
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import sys
+import time
+from twisted.internet import protocol
+from twisted.internet import reactor
 from twisted.python import log
-
-# system imports
-import time, sys
+from twisted.words.protocols import irc
 import yaml
 
 sys.path.append('plugins')
 
+
 class SlutBot(irc.IRCClient):
-    nickname = "slutbot"
-    
+
+    nickname = 'slutbot'
+
     def __init__(self):
         pass
+
     def load_plugins(self):
         plugins = self.factory.server_config['plugins']
         self.triggers = {}
@@ -25,76 +28,81 @@ class SlutBot(irc.IRCClient):
                 plugin_obj = getattr(plugin_module, plugin)
                 plugin_obj = plugin_obj(self)
                 plugin_events = plugin_obj.get_events()
-                self.triggers.update( plugin_events.items() )   
+                self.triggers.update(plugin_events.items())
             except TypeError as e:
-                print "Something terrible happened: " + e.message
-
+                print('Something terrible happened: ' + e.message)
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
-        sys.stdout.write("[connected at %s]" % 
-                        time.asctime(time.localtime(time.time())))
+        sys.stdout.write('[connected at %s]'
+                         % time.asctime(time.localtime(time.time())))
 
     def connectionLost(self, reason):
-        sys.stdout.write("[disconnected at %s]" % 
-                        time.asctime(time.localtime(time.time())))
+        sys.stdout.write('[disconnected at %s]'
+                         % time.asctime(time.localtime(time.time())))
 
     def signedOn(self):
-        print "connection from", self.transport.getPeer()
+        print('connection from', self.transport.getPeer())
         self.load_plugins()
         self.setNick(self.factory.server_config['nickname'])
         channel_list = self.factory.server_config['channels']
         for channel in channel_list.keys():
-            self.join( channel, channel_list[channel] )
+            self.join(channel, channel_list[channel])
 
     def joined(self, channel):
         """This will get called when the bot joins the channel."""
-        sys.stdout.write("[I have joined %s]" % channel)
+
+        sys.stdout.write('[I have joined %s]' % channel)
 
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
-        
+
         if msg.find(' '):
-            [ command, null, arguments ] = msg.partition(' ')
+            [command, null, arguments] = msg.partition(' ')
             for trigger in self.triggers.keys():
                 if command == trigger:
-                    self.triggers[trigger]( channel, arguments, user)
+                    self.triggers[trigger](channel, arguments, user)
+
     def action(self, user, channel, msg):
         user = user.split('!', 1)[0]
-        sys.stdout.write("* %s %s" % (user, msg))
+        sys.stdout.write('* %s %s' % (user, msg))
+
     def irc_NICK(self, prefix, params):
         """Called when an IRC user changes their nickname."""
+
         old_nick = prefix.split('!')[0]
         new_nick = params[0]
-        sys.stdout.write("%s is now known as %s" % (old_nick, new_nick))
-
+        sys.stdout.write('%s is now known as %s' % (old_nick, new_nick))
 
     # For fun, override the method that determines how a nickname is changed on
     # collisions. The default method appends an underscore.
+
     def alterCollidedNick(self, nickname):
         return nickname + '^'
 
-    
 
 class SlutBotFactory(protocol.ClientFactory):
+
     # the class of the protocol to build when new connection is made
+
     protocol = SlutBot
 
-    def __init__(self, server_config ):
+    def __init__(self, server_config):
         self.server_config = server_config
 
     def clientConnectionLost(self, connector, reason):
         """If we get disconnected, reconnect to server."""
+
         connector.connect()
 
     def clientConnectionFailed(self, connector, reason):
-        print "connection failed:", reason
+        print('connection failed:', reason)
         reactor.stop()
 
 
 if __name__ == '__main__':
     log.startLogging(sys.stdout)
-    
+
     config_fh = open('servers.yaml', 'r')
     servers = yaml.load(config_fh)
 
@@ -121,7 +129,7 @@ if __name__ == '__main__':
 #        'irc.someotherserver.net': {
 #            'port': 6667,
 #            'channels':{
-#                '#reddit-nowhere':'onepersonliveshere',  # connect to a key channel
+#               '#red':'blue',  # connect to channel "#red" with key "blue"
 #            }
 #        }
 #    }
