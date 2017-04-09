@@ -4,7 +4,6 @@ An easy to install and use IRC bot designed for the #reddit-houston IRC channel
 Slut bot is written to be run on Ubuntu, I'm sure it will work just fine on other distributions, but I use ubuntu.
 
 >    $ sudo apt-get install python-twisted-words python-twisted  python-yaml python-beautifulsoup python-enchant python-simplejson
->    
 >    $ git clone https://github.com/MattDees/slutbot.git
 
 # Configuration
