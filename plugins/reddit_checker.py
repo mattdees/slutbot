@@ -1,24 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from sb_plugins import plugin_base
-import simplejson as json
-from twisted.internet import task
 import urllib2
+
+from sb_plugins import plugin_base
+
+import simplejson as json
+
+from twisted.internet import task
 
 
 class reddit_checker(plugin_base):
     def __init__(self, irc):
         self.registered_events = {}
         self.irc = irc
-        self.subreddit = irc.factory.server_config['plugin_config']['reddit_subreddit']
-        self.last_id = self.get_latest_post_id()
+        self.reddit_config = irc.factory.server_config['plugin_config']['reddit']
+
         looper = task.LoopingCall(self.redditcheck)
         looper.start(30)
 
-    def get_subreddit_new(self):
-        user_agent = 'slutbot for polling ' + self.subreddit
-        url = 'http://www.reddit.com/r/' + self.subreddit \
-            + '/new.json?sort=new'
+    def get_subreddit_new(self, subreddit):
+        user_agent = 'slutbot for polling ' + subreddit
+        url = 'http://www.reddit.com/r/' + subreddit + '/new.json?sort=new'
         opener = urllib2.build_opener()
         opener.addheaders = [('User-agent', user_agent)]
         response = opener.open(url)
@@ -26,24 +28,34 @@ class reddit_checker(plugin_base):
         parsed = json.loads(data)
         return parsed['data']['children']
 
-    def get_latest_post_id(self):
-        data = self.get_subreddit_new()
+    def get_latest_post_id(self, subreddit):
+        data = self.get_subreddit_new(subreddit)
         return data[0]['data']['id']
 
     def redditcheck(self):
-        send_channel = self.irc.factory.server_config['plugin_config']['reddit_channel']
+        for subscribe in self.reddit_config:
+            subreddit = subscribe['subreddit']
+            channel = subscribe['channel']
+            if 'next_last_id' not in subscribe:
+                subscribe['next_last_id'] = self.get_latest_post_id(subreddit)
+            else:
+                data = self.get_subreddit_new(subreddit)
 
-#    ....self.irc.msg(send_channel, 'getting data for ' + self.subreddit)
+                for child in data:
+                    id = child['data']['id']
+                    if id == subscribe['next_last_id']:
+                        break
 
-        data = self.get_subreddit_new()
-        next_last_id = data[0]['data']['id']
+                    title = child['data']['title']
+                    link = child['data']['permalink']
 
-#        self.irc.msg(send_channel, 'top id for subreddit is ' + next_last_id)
+                    self.irc.msg(
+                        channel,
+                        'New r/' + self.subreddit + ' submission: ' + title
+                    )
+                    self.irc.msg(
+                        channel,
+                        'link: http://www.reddit.com' + link
+                    )
 
-        for child in data:
-            id = child['data']['id']
-            if id == self.last_id:
-                break
-            self.irc.msg(send_channel, 'New r/' + self.subreddit + ' submission: ' + child['data']['title'])
-            self.irc.msg(send_channel, 'link: http://www.reddit.com' + child['data']['permalink'])
-        self.last_id = next_last_id
+                subscribe['next_last_id'] = data[0]['data']['id']
