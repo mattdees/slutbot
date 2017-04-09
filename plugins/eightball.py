@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import random
+from sb_plugins import plugin_base
 
 
-class eightball(object):
+class eightball(plugin_base):
     def __init__(self, irc):
         self.registered_events = {'.8ball': self.eightball}
         string_fh = open('8ball.strings', 'r')
@@ -11,9 +12,6 @@ class eightball(object):
         for line in string_fh:
             self.strings.append(line)
         self.irc = irc
-
-    def get_events(self):
-        return self.registered_events
 
     def eightball(self, channel, arguments, user):
         string = random.choice(self.strings)

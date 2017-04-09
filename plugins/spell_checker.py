@@ -1,14 +1,12 @@
 import enchant
+from sb_plugins import plugin_base
 
 
-class spell_checker(object):
+class spell_checker(plugin_base):
     def __init__(self, irc):
         self.registered_events = {'.spellcheck': self.spellcheck, '.sc': self.spellcheck}
         self.enchant = enchant.Dict('en-US')
         self.irc = irc
-
-    def get_events(self):
-        return self.registered_events
 
     def spellcheck(self, channel, arguments, user):
         if (self.enchant.check(arguments)):

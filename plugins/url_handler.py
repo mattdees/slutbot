@@ -1,14 +1,12 @@
 import BeautifulSoup
+from sb_plugins import plugin_base
 import urllib2
 
 
-class url_handler(object):
+class url_handler(plugin_base):
     def __init__(self, irc):
         self.registered_events = {'.t': self.get_http_title, '.gettitle': self.get_http_title}
         self.irc = irc
-
-    def get_events(self):
-        return self.registered_events
 
     def get_http_title(self, channel, arguments, user):
         title = self.url_title(arguments)

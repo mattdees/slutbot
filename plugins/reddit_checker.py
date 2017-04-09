@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from sb_plugins import plugin_base
 import simplejson as json
 from twisted.internet import task
 import urllib2
 
 
-class reddit_checker(object):
-
+class reddit_checker(plugin_base):
     def __init__(self, irc):
         self.registered_events = {}
         self.irc = irc
@@ -14,9 +14,6 @@ class reddit_checker(object):
         self.last_id = self.get_latest_post_id()
         looper = task.LoopingCall(self.redditcheck)
         looper.start(30)
-
-    def get_events(self):
-        return self.registered_events
 
     def get_subreddit_new(self):
         user_agent = 'slutbot for polling ' + self.subreddit

@@ -2,19 +2,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import BeautifulSoup
+from sb_plugins import plugin_base
 import urllib
 import urllib2
 
 
-class weather_check(object):
+class weather_check(plugin_base):
     def __init__(self, irc):
         self.registered_events = {'.w': self.wunderground,
                                   '.pws': self.wu_pws,
                                   '.pws_id': self.wu_pwsid}
         self.irc = irc
-
-    def get_events(self):
-        return self.registered_events
 
     def wunderground(self, channel, arguments, user):
         res_xml = \

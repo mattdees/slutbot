@@ -1,14 +1,12 @@
+from sb_plugins import plugin_base
 import random
 
 
-class roulette(object):
+class roulette(plugin_base):
     def __init__(self, irc):
         self.registered_events = {'.roulette': self.roulette}
         self.in_session = False
         self.irc = irc
-
-    def get_events(self):
-        return self.registered_events
 
     def roulette(self, channel, arguments, user):
         if self.in_session is False:
