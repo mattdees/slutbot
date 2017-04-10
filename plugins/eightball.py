@@ -14,9 +14,9 @@ class eightball(plugin_base):
             self.strings.append(line)
         self.irc = irc
 
-    def eightball(self, channel, arguments, user):
+    def eightball(self, sbmessage):
         string = random.choice(self.strings)
-        if user == 'tmarkovich':
-            self.irc.msg(channel, 'fuck off, thomas')
+        if sbmessage.user == 'tmarkovich':
+            sbmessage.respond('fuck off, thomas')
             return
-        self.irc.msg(channel, string)
+        sbmessage.respond(string)

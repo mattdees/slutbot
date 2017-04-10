@@ -33,10 +33,12 @@ class reddit_checker(plugin_base):
         return data[0]['data']['id']
 
     def redditcheck(self):
+        print("tick")
+        print(self.reddit_config)
         for subscribe in self.reddit_config:
             subreddit = subscribe['subreddit']
             channel = subscribe['channel']
-            if 'next_last_id' not in subscribe:
+            if 'next_last_id' not in subscribe.keys():
                 subscribe['next_last_id'] = self.get_latest_post_id(subreddit)
             else:
                 data = self.get_subreddit_new(subreddit)
@@ -48,6 +50,8 @@ class reddit_checker(plugin_base):
 
                     title = child['data']['title']
                     link = child['data']['permalink']
+                    print(title)
+                    print(link)
 
                     self.irc.msg(
                         channel,

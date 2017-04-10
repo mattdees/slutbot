@@ -14,15 +14,16 @@ class url_handler(plugin_base):
         }
         self.irc = irc
 
-    def get_http_title(self, channel, arguments, user):
-        title = self.url_title(arguments)
+    def messagehandler(self, sbmessage):
+        sbmessage.respond('lol THIS WORKS OR SOME SHIT')
+
+    def get_http_title(self, sbmessage):
+        url = sbmessage.arguments
+        title = self.url_title(url)
         if title:
-            self.irc.msg(channel, arguments + ': ' + title.encode('latin-1'))
+            sbmessage.respond(url + ': ' + title.encode('latin-1'))
         else:
-            self.irc.msg(
-                channel,
-                'Invalid url or url does not contain title tag'
-            )
+            sbmessage.respond('Invalid url or url does not contain title tag')
 
     def url_title(self, url):
         if url.startswith('http') is False:

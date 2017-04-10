@@ -26,10 +26,10 @@ class weather_check(plugin_base):
         }
         self.irc = irc
 
-    def wunderground(self, channel, arguments, user):
+    def wunderground(self, sbmessage):
         res_xml = self.http_get_query(
             self.endpoints['GeoCurrent'],
-            {'query': arguments}
+            {'query': sbmessage.arguments}
         )
 
         parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
@@ -37,12 +37,12 @@ class weather_check(plugin_base):
             parsed_res.current_observation.display_location.full.string \
             + ' '
         res = self.parse_wunderground_respone(parsed_res, res)
-        self.irc.msg(channel, res.encode('latin-1'))
+        sbmessage.respond(res.encode('latin-1'))
 
-    def wu_pws(self, channel, arguments, user):
+    def wu_pws(self, sbmessage):
         stations = self.http_get_query(
             self.endpoints['GeoLookup'],
-            {'query': arguments}
+            {'query': sbmessage.arguments}
         )
 
         stations_parsed = BeautifulSoup.BeautifulStoneSoup(stations)
@@ -52,13 +52,13 @@ class weather_check(plugin_base):
         station_id = station_id.replace('<![CDATA[', '')
         station_id = station_id.replace(']]>', '')
 
-        self.return_pwsid(channel, station_id)
+        self.return_pwsid(sbmessage, station_id)
 
-    def wu_pwsid(self, channel, arguments, user):
+    def wu_pwsid(self, sbmessage):
         station_id = "KTXHOUST890"
-        self.return_pwsid(channel, station_id)
+        self.return_pwsid(sbmessage, station_id)
 
-    def return_pwsid(self, channel, stationid):
+    def return_pwsid(self, sbmessage, stationid):
         res_xml = self.http_get_query(
             self.endpoints['WsCurrent'],
             {'ID': stationid}
@@ -67,7 +67,7 @@ class weather_check(plugin_base):
         parsed_res = BeautifulSoup.BeautifulStoneSoup(res_xml)
         res = parsed_res.current_observation.location.full.string + ' '
         res = self.parse_wunderground_respone(parsed_res, res)
-        self.irc.msg(channel, res.encode('latin-1'))
+        sbmessage.respond(res.encode('latin-1'))
 
     def parse_wunderground_respone(self, data, response):
         obs = data.current_observation

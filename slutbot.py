@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 from __future__ import print_function
 
 import sys
@@ -12,8 +13,10 @@ from twisted.words.protocols import irc
 
 import yaml
 
+
 sys.path.append('plugins')
 sys.path.append('lib')
+
 
 class SlutBot(irc.IRCClient):
 
@@ -25,6 +28,7 @@ class SlutBot(irc.IRCClient):
     def load_plugins(self):
         plugins = self.factory.server_config['plugins']
         self.triggers = {}
+        self.messagehandlers = []
         for plugin in plugins:
             try:
                 plugin_module = __import__(plugin)
@@ -32,6 +36,8 @@ class SlutBot(irc.IRCClient):
                 plugin_obj = plugin_obj(self)
                 plugin_events = plugin_obj.get_events()
                 self.triggers.update(plugin_events.items())
+                if hasattr(plugin_obj, 'messagehandler'):
+                    self.messagehandlers.append(plugin_obj)
             except TypeError as e:
                 print('Something terrible happened: ' + e.message)
 
@@ -58,13 +64,19 @@ class SlutBot(irc.IRCClient):
         sys.stdout.write('[I have joined %s]' % channel)
 
     def privmsg(self, user, channel, msg):
-        user = user.split('!', 1)[0]
+
+        sbmessage = SBMessage(self, channel, msg, user)
+        user = sbmessage.username
+        print(self.messagehandlers)
+
+        for obj in self.messagehandlers:
+            obj.messagehandler(sbmessage)
 
         if msg.find(' '):
             [command, null, arguments] = msg.partition(' ')
             for trigger in self.triggers.keys():
                 if command == trigger:
-                    self.triggers[trigger](channel, arguments, user)
+                    self.triggers[trigger](sbmessage)
 
     def action(self, user, channel, msg):
         user = user.split('!', 1)[0]
@@ -75,7 +87,7 @@ class SlutBot(irc.IRCClient):
 
         old_nick = prefix.split('!')[0]
         new_nick = params[0]
-        sys.stdout.write('%s is now known as %s' % (old_nick, new_nick))
+        sys.stdout.write("%s is now known as %s\n" % (old_nick, new_nick))
 
     # For fun, override the method that determines how a nickname is changed on
     # collisions. The default method appends an underscore.
@@ -103,6 +115,28 @@ class SlutBotFactory(protocol.ClientFactory):
         reactor.stop()
 
 
+class SBMessage(object):
+    """Base Class for different message types"""
+    command = ''
+    arguments = ''
+    username = ''
+    hostname = ''
+    name = ''
+
+    def __init__(self, irc, channel, msg, user=None):
+        if user is not None:
+            (self.username, self.hostname) = user.split('!', 2)
+            (self.name, self.hostname) = self.hostname.split('@', 2)
+        if msg.index('.') == 0:
+            # If this looks like a command (starts with .) save the parts off
+            (self.command, self.arguments) = msg.split(' ', 2)
+        self.channel = channel
+        self.msg = msg
+        self.irc = irc
+
+    def respond(self, message):
+        self.irc.msg(self.channel, message)
+
 if __name__ == '__main__':
     log.startLogging(sys.stdout)
 
@@ -117,22 +151,3 @@ if __name__ == '__main__':
         reactor.connectTCP(server, port, factory)
 
     reactor.run()
-
-# this expects to be run in a directory containing a file called
-# servers.yamls, this file should have the following structure
-
-#    {
-#        'irc.someserver.net': {
-#            'port': 6667,
-#            'channels':{
-#                '#geckbot':False,    # connect to an unkeyed channel
-#                '#blah':False,       # connect to some other channel
-#            }
-#        },
-#        'irc.someotherserver.net': {
-#            'port': 6667,
-#            'channels':{
-#               '#red':'blue',  # connect to channel "#red" with key "blue"
-#            }
-#        }
-#    }
