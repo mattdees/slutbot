@@ -31,15 +31,22 @@ class SlutBot(irc.IRCClient):
         self.messagehandlers = []
         for plugin in plugins:
             try:
+                plugin_config = self.get_plugin_config(plugin)
                 plugin_module = __import__(plugin)
                 plugin_obj = getattr(plugin_module, plugin)
-                plugin_obj = plugin_obj(self)
+                plugin_obj = plugin_obj(self, plugin_config)
                 plugin_events = plugin_obj.get_events()
                 self.triggers.update(plugin_events.items())
                 if hasattr(plugin_obj, 'messagehandler'):
                     self.messagehandlers.append(plugin_obj)
             except TypeError as e:
                 print('Something terrible happened: ' + e.message)
+
+    def get_plugin_config(self, plugin):
+        plugin_config = None
+        if plugin in self.factory.server_config['plugin_config']:
+            plugin_config = self.factory.server_config['plugin_config'][plugin]
+        return plugin_config
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -72,11 +79,9 @@ class SlutBot(irc.IRCClient):
         for obj in self.messagehandlers:
             obj.messagehandler(sbmessage)
 
-        if msg.find(' '):
-            [command, null, arguments] = msg.partition(' ')
-            for trigger in self.triggers.keys():
-                if command == trigger:
-                    self.triggers[trigger](sbmessage)
+        if sbmessage.command:
+            if sbmessage.command in self.triggers.keys():
+                self.triggers[sbmessage.command](sbmessage)
 
     def action(self, user, channel, msg):
         user = user.split('!', 1)[0]
@@ -117,8 +122,6 @@ class SlutBotFactory(protocol.ClientFactory):
 
 class SBMessage(object):
     """Base Class for different message types"""
-    command = ''
-    arguments = ''
     username = ''
     hostname = ''
     name = ''
@@ -127,9 +130,16 @@ class SBMessage(object):
         if user is not None:
             (self.username, self.hostname) = user.split('!', 2)
             (self.name, self.hostname) = self.hostname.split('@', 2)
-        if msg.index('.') == 0:
+        if msg.find('.') == 0:
             # If this looks like a command (starts with .) save the parts off
-            (self.command, self.arguments) = msg.split(' ', 2)
+            try:
+                (self.command, self.arguments) = msg.split(' ', 2)
+            except ValueError:
+                self.command = msg
+                self.arguments = False
+        else:
+            self.command = False
+            self.arguments = False
         self.channel = channel
         self.msg = msg
         self.irc = irc

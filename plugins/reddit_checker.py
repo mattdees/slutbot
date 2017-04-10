@@ -10,10 +10,10 @@ from twisted.internet import task
 
 
 class reddit_checker(plugin_base):
-    def __init__(self, irc):
+    def __init__(self, irc, config=None):
         self.registered_events = {}
         self.irc = irc
-        self.reddit_config = irc.factory.server_config['plugin_config']['reddit']
+        self.config = config
 
         looper = task.LoopingCall(self.redditcheck)
         looper.start(30)
@@ -34,8 +34,7 @@ class reddit_checker(plugin_base):
 
     def redditcheck(self):
         print("tick")
-        print(self.reddit_config)
-        for subscribe in self.reddit_config:
+        for subscribe in self.config:
             subreddit = subscribe['subreddit']
             channel = subscribe['channel']
             if 'next_last_id' not in subscribe.keys():

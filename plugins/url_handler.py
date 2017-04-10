@@ -1,4 +1,6 @@
+from __future__ import print_function
 
+import re
 import urllib2
 
 import BeautifulSoup
@@ -8,22 +10,13 @@ from sb_plugins import plugin_base
 
 class url_handler(plugin_base):
     def __init__(self, irc):
-        self.registered_events = {
-            '.t': self.get_http_title,
-            '.gettitle': self.get_http_title
-        }
         self.irc = irc
+        self.url_regex = re.compile(r"(https?://[^ ]+)")
 
     def messagehandler(self, sbmessage):
-        sbmessage.respond('lol THIS WORKS OR SOME SHIT')
-
-    def get_http_title(self, sbmessage):
-        url = sbmessage.arguments
-        title = self.url_title(url)
-        if title:
-            sbmessage.respond(url + ': ' + title.encode('latin-1'))
-        else:
-            sbmessage.respond('Invalid url or url does not contain title tag')
+        for url in self.url_regex.findall(sbmessage.msg):
+            title = self.url_title(url)
+            sbmessage.respond(title.encode('latin-1'))
 
     def url_title(self, url):
         if url.startswith('http') is False:

@@ -16,7 +16,7 @@ class eightball(plugin_base):
 
     def eightball(self, sbmessage):
         string = random.choice(self.strings)
-        if sbmessage.user == 'tmarkovich':
+        if sbmessage.username == 'tmarkovich':
             sbmessage.respond('fuck off, thomas')
             return
         sbmessage.respond(string)
